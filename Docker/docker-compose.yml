@@ -4,6 +4,8 @@ services:
   freshrss_postgresql:
     image: postgres
     restart: unless-stopped
+    networks: 
+      - rss
     volumes:
       - pgsql_data:/var/lib/postgresql/data
     environment:
@@ -14,20 +16,31 @@ services:
   freshrss:
     image: freshrss/freshrss
     restart: unless-stopped
-    ports:
-      - "8080:80"
+    networks: 
+      - traefik
+      - rss
     depends_on:
       - freshrss_postgresql
     volumes:
       - freshrss_data:/var/www/FreshRSS/data
       - freshrss_extensions:/var/www/FreshRSS/extensions
     environment:
-      - CRON_MIN=*/20
-      - TZ=Europe/Copenhagen
+      - CRON_MIN=*/5
+      - TZ=Europe/Berlin
     labels:
-      - "traefik.port=80"
+      - "traefik.enable=true"
+      - "traefik.http.routers.rss.rule=Host(`rss.tillepille.io`)"
+      - "traefik.http.routers.rss.entrypoints=websecure"
+      - "traefik.http.routers.rss.tls=true"
+      - "traefik.http.routers.rss.tls.certresolver=myresolver"
 
 volumes:
   pgsql_data:
   freshrss_data:
   freshrss_extensions:
+
+networks:
+  rss:
+  traefik:
+    external:
+      name: traefik
